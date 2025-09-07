@@ -122,6 +122,24 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     // Upload to OpenAI if API key is configured
     if (config.openai.apiKey && config.openai.apiKey !== 'your_openai_api_key_here') {
       try {
+        // Check if file type is supported by OpenAI file search
+        const supportedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.md', '.html', '.json'];
+        const fileExtension = path.extname(req.file.originalname).toLowerCase();
+        
+        if (!supportedExtensions.includes(fileExtension)) {
+          console.warn(`⚠️ File type ${fileExtension} not supported by OpenAI file search. Supported types: ${supportedExtensions.join(', ')}`);
+          console.log('📁 File saved locally but will not be available for AI search');
+          
+          return res.json({
+            success: true,
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            description: req.body.description,
+            openaiSupported: false,
+            message: `File uploaded successfully but ${fileExtension} files cannot be searched by the AI assistant. Supported formats: ${supportedExtensions.join(', ')}`
+          });
+        }
+        
         console.log(`📤 Uploading ${req.file.originalname} to OpenAI...`);
         
         // Upload file to OpenAI

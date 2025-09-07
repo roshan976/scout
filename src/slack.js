@@ -25,7 +25,7 @@ app.use(async ({ payload, next }) => {
   await next();
 });
 
-// Listen for thread replies to Scout (no need to mention @scout in threads)
+// Listen for messages that mention @scout or contain "scout", plus thread replies
 app.message(async ({ message, say }) => {
   // Skip if this is a bot message or from Scout itself
   if (message.bot_id || message.subtype === 'bot_message') {
@@ -57,33 +57,33 @@ app.message(async ({ message, say }) => {
       console.error('❌ Error checking thread history:', threadError.message);
     }
   }
-});
-
-// Listen for messages that mention @scout or contain "scout"
-app.message(/scout/i, async ({ message, say }) => {
-  try {
-    console.log('📩 Received Scout mention:', message.text);
-    console.log('👤 From user:', message.user);
-    console.log('📍 In channel:', message.channel);
-    
-    // Extract the query from the message (remove "scout" mentions)
-    const query = message.text
-      .replace(/@scout\s*/gi, '')
-      .replace(/\bscout\b\s*/gi, '')
-      .trim();
-    
-    await handleScoutQuery(message, say, query);
-    
-  } catch (error) {
-    console.error('❌ Error handling Scout mention:', error);
-    
+  
+  // Check if message mentions scout or contains "scout"
+  if (message.text && /scout/i.test(message.text)) {
     try {
-      await say({
-        text: '🚨 Sorry, I encountered an error processing your request. Please try again later.',
-        thread_ts: message.ts
-      });
-    } catch (sayError) {
-      console.error('❌ Error sending error message:', sayError);
+      console.log('📩 Received Scout mention:', message.text);
+      console.log('👤 From user:', message.user);
+      console.log('📍 In channel:', message.channel);
+      
+      // Extract the query from the message (remove "scout" mentions)
+      const query = message.text
+        .replace(/@scout\s*/gi, '')
+        .replace(/\bscout\b\s*/gi, '')
+        .trim();
+      
+      await handleScoutQuery(message, say, query);
+      
+    } catch (error) {
+      console.error('❌ Error handling Scout mention:', error);
+      
+      try {
+        await say({
+          text: '🚨 Sorry, I encountered an error processing your request. Please try again later.',
+          thread_ts: message.ts
+        });
+      } catch (sayError) {
+        console.error('❌ Error sending error message:', sayError);
+      }
     }
   }
 });
