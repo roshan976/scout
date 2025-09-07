@@ -8,7 +8,7 @@ class ResponseFormatter {
     const {
       includeMetadata = true,
       includeQuickActions = true,
-      includeTimestamp = true,
+      includeTimestamp = false,
       maxSourcesShown = 5,
       responseStyle = 'professional' // professional, casual, technical
     } = options;
@@ -23,10 +23,7 @@ class ResponseFormatter {
     const sources = result.sources || [];
     const availableFiles = result.availableFiles || 0;
     
-    // Create enhanced header based on style
-    const headerText = this.createHeaderText(responseStyle, isMock);
-    
-    // Format main response with better structure
+    // Format main response directly without header or question summary
     const formattedResponse = this.formatResponseBody(responseText, originalQuery, responseStyle);
     
     // Create enhanced source citations
@@ -38,9 +35,9 @@ class ResponseFormatter {
     // Create metadata footer
     const metadataSection = includeMetadata ? this.createMetadataFooter(isMock, availableFiles, includeTimestamp) : null;
     
-    // Build complete Slack blocks structure
+    // Build simplified Slack blocks structure without header
     const blocks = this.buildSlackBlocks({
-      headerText,
+      headerText: null,
       formattedResponse,
       sourcesSection,
       actionsSection,
@@ -48,7 +45,7 @@ class ResponseFormatter {
     });
     
     // Create fallback text for notifications
-    const fallbackText = this.createFallbackText(headerText, originalQuery, responseText);
+    const fallbackText = this.createFallbackText(null, originalQuery, responseText);
     
     return {
       text: fallbackText,
@@ -78,16 +75,13 @@ class ResponseFormatter {
   
   // Enhanced response body formatting
   static formatResponseBody(responseText, originalQuery, style) {
-    // Add query context
-    const queryContext = `*Your question:* "${originalQuery}"\n\n`;
-    
-    // Format response based on style
+    // Format response directly without query context
     let formattedText = responseText;
     
     // Add formatting improvements
     formattedText = this.enhanceTextFormatting(formattedText);
     
-    return queryContext + formattedText;
+    return formattedText;
   }
   
   // Enhance text formatting with Slack markdown
@@ -212,19 +206,11 @@ class ResponseFormatter {
     };
   }
   
-  // Build complete Slack blocks structure
+  // Build simplified Slack blocks structure
   static buildSlackBlocks({ headerText, formattedResponse, sourcesSection, actionsSection, metadataSection }) {
     const blocks = [];
     
-    // Header block
-    blocks.push({
-      type: 'header',
-      text: {
-        type: 'plain_text',
-        text: headerText,
-        emoji: true
-      }
-    });
+    // Skip header block - removed per user request
     
     // Main response block
     blocks.push({
@@ -235,10 +221,7 @@ class ResponseFormatter {
       }
     });
     
-    // Divider for better visual separation
-    blocks.push({ type: 'divider' });
-    
-    // Sources section
+    // Sources section (without divider for cleaner look)
     if (sourcesSection) {
       blocks.push(sourcesSection);
     }
@@ -262,7 +245,7 @@ class ResponseFormatter {
       ? responseText.substring(0, 197) + '...' 
       : responseText;
     
-    return `${headerText}\n\nQ: ${originalQuery}\n\nA: ${shortResponse}`;
+    return shortResponse;
   }
   
   // Format error responses with helpful information

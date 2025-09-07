@@ -187,7 +187,7 @@ async function handleScoutQuery(message, say, query) {
     const slackResponse = formatEnhancedSlackResponse(queryResult, query, {
       responseStyle: 'professional',
       includeQuickActions: false, // Buttons are disabled
-      includeTimestamp: true
+      includeTimestamp: false // Timestamp disabled per user request
     });
     
     // Update the thinking message with the actual response
