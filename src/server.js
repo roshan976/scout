@@ -134,29 +134,42 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             const { createVectorStoreWithFiles, attachVectorStoreToAssistant } = require('./openai');
             
             console.log('📚 Creating vector store with uploaded file...');
+            console.log('   - File to process:', req.file.originalname);
+            console.log('   - OpenAI File ID:', openaiFile.id);
+            
             const vectorStore = await createVectorStoreWithFiles([openaiFile.id], 'Scout Knowledge Base');
             
             console.log('🔗 Attaching vector store to Assistant...');
             await attachVectorStoreToAssistant(config.openai.assistantId, vectorStore.id);
             
             // Update Assistant instructions with file descriptions  
+            console.log('📝 Updating Assistant instructions...');
             await updateAssistantInstructions(config.openai.assistantId);
             assistantUpdated = true;
             
             console.log('✅ File search enabled for Assistant');
+            console.log('   - Vector Store ID:', vectorStore.id);
+            console.log('   - Files in store:', vectorStore.file_counts || 'unknown');
           } catch (vectorError) {
             console.error('❌ Vector store setup failed:', vectorError.message);
+            console.error('   - Full error:', vectorError);
             console.log('💡 File uploaded but search may not work properly');
             
             // Still update instructions even if vector store fails
-            await updateAssistantInstructions(config.openai.assistantId);
-            assistantUpdated = true;
+            try {
+              await updateAssistantInstructions(config.openai.assistantId);
+              assistantUpdated = true;
+              console.log('📝 Assistant instructions updated despite vector store failure');
+            } catch (instructionError) {
+              console.error('❌ Failed to update instructions:', instructionError.message);
+            }
           }
         }
         
         openaiResponse = {
           fileId: openaiFile.id,
-          assistantUpdated: assistantUpdated
+          assistantUpdated: assistantUpdated,
+          vectorStoreEnabled: assistantUpdated // Will be true if vector store was successfully created
         };
         
         console.log('✅ File uploaded to OpenAI and Assistant updated');
@@ -210,6 +223,61 @@ app.get('/files', (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to get files',
+      details: error.message 
+    });
+  }
+});
+
+// Vector store debugging endpoint
+app.get('/debug/vector-stores', async (req, res) => {
+  try {
+    if (!config.openai.apiKey || !config.openai.assistantId) {
+      return res.status(400).json({ 
+        error: 'OpenAI not configured'
+      });
+    }
+    
+    const { getOpenAIClient, getVectorStoreDetails } = require('./openai');
+    const client = getOpenAIClient();
+    
+    console.log('🔍 Debug: Checking Assistant vector stores...');
+    
+    // Get Assistant details
+    const assistant = await client.beta.assistants.retrieve(config.openai.assistantId);
+    const vectorStoreIds = assistant.tool_resources?.file_search?.vector_store_ids || [];
+    
+    console.log('📊 Assistant vector stores:', vectorStoreIds.length);
+    
+    const vectorStoreDetails = [];
+    
+    // Get details for each vector store
+    for (const storeId of vectorStoreIds) {
+      try {
+        const details = await getVectorStoreDetails(storeId);
+        vectorStoreDetails.push(details);
+      } catch (error) {
+        console.error('❌ Error getting vector store details:', storeId, error.message);
+        vectorStoreDetails.push({ error: error.message, storeId });
+      }
+    }
+    
+    res.json({
+      success: true,
+      assistant: {
+        id: assistant.id,
+        name: assistant.name,
+        tools: assistant.tools.map(t => t.type),
+        vectorStoreCount: vectorStoreIds.length,
+        vectorStoreIds: vectorStoreIds
+      },
+      vectorStores: vectorStoreDetails,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Error in vector store debug endpoint:', error);
+    res.status(500).json({ 
+      error: 'Debug failed',
       details: error.message 
     });
   }

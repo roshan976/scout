@@ -41,9 +41,20 @@ async function processQuery(userQuery, userId = null, channelId = null) {
   }
   
   try {
+    // Log Assistant configuration before running
+    console.log('📊 Pre-query Assistant verification:');
+    const assistantDetails = await client.beta.assistants.retrieve(config.openai.assistantId);
+    console.log('   - Assistant Name:', assistantDetails.name);
+    console.log('   - Tools enabled:', assistantDetails.tools.map(t => t.type).join(', '));
+    console.log('   - Vector stores attached:', assistantDetails.tool_resources?.file_search?.vector_store_ids?.length || 0);
+    if (assistantDetails.tool_resources?.file_search?.vector_store_ids) {
+      console.log('   - Vector store IDs:', assistantDetails.tool_resources.file_search.vector_store_ids);
+    }
+    
     // Create a thread for this conversation
     console.log('🧵 Creating conversation thread...');
     const thread = await client.beta.threads.create();
+    console.log('   - Thread ID:', thread.id);
     
     // Add the user's message to the thread
     console.log('💬 Adding user message to thread...');
@@ -51,46 +62,97 @@ async function processQuery(userQuery, userId = null, channelId = null) {
       role: 'user',
       content: userQuery
     });
+    console.log('   - Message added successfully');
     
     // Run the Assistant
     console.log('🤖 Running Assistant...');
     const run = await client.beta.threads.runs.create(thread.id, {
       assistant_id: config.openai.assistantId
     });
+    console.log('   - Run ID:', run.id);
+    console.log('   - Run Status:', run.status);
     
     // Wait for completion
     console.log('⏳ Waiting for Assistant response...');
     let runStatus = await client.beta.threads.runs.retrieve(thread.id, run.id);
+    let pollCount = 0;
     
     while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+      pollCount++;
+      console.log(`   - Poll ${pollCount}: Status = ${runStatus.status}`);
+      if (runStatus.usage) {
+        console.log(`   - Token usage so far:`, runStatus.usage);
+      }
       await new Promise(resolve => setTimeout(resolve, 1000));
       runStatus = await client.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+    
+    console.log('🔴 Assistant run completed:');
+    console.log('   - Final status:', runStatus.status);
+    console.log('   - Total polls:', pollCount);
+    if (runStatus.usage) {
+      console.log('   - Final token usage:', runStatus.usage);
+    }
+    if (runStatus.last_error) {
+      console.log('   - Last error:', runStatus.last_error);
     }
     
     if (runStatus.status === 'completed') {
       // Get the Assistant's response
       console.log('✅ Getting Assistant response...');
       const messages = await client.beta.threads.messages.list(thread.id);
+      console.log('   - Total messages in thread:', messages.data.length);
+      
       const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
+      console.log('   - Assistant message found:', !!assistantMessage);
       
       if (assistantMessage && assistantMessage.content[0]) {
         const responseText = assistantMessage.content[0].text.value;
-        console.log('🎯 Assistant response received');
+        console.log('🎯 Assistant response received:');
+        console.log('   - Response length:', responseText.length, 'characters');
+        console.log('   - Response preview:', responseText.substring(0, 200) + '...');
+        
+        // Check for file search annotations
+        const annotations = assistantMessage.content[0].text.annotations || [];
+        console.log('🔍 File search analysis:');
+        console.log('   - Annotations found:', annotations.length);
+        if (annotations.length > 0) {
+          console.log('   - Annotation types:', annotations.map(a => a.type).join(', '));
+          annotations.forEach((annotation, i) => {
+            if (annotation.type === 'file_citation') {
+              console.log(`   - Citation ${i + 1}: File ID ${annotation.file_citation.file_id}`);
+            }
+          });
+        } else {
+          console.log('   ⚠️ No file citations found - vector store may not be working');
+        }
+        
+        const sources = extractSources(responseText);
+        console.log('   - Extracted sources:', sources.length, sources);
         
         return {
           success: true,
           response: responseText,
           threadId: thread.id,
           runId: run.id,
-          sources: extractSources(responseText)
+          sources: sources,
+          annotations: annotations,
+          hasFileCitations: annotations.some(a => a.type === 'file_citation')
         };
       }
     }
     
     console.log('❌ Assistant run failed or incomplete:', runStatus.status);
+    if (runStatus.last_error) {
+      console.log('   - Error details:', runStatus.last_error);
+    }
+    if (runStatus.incomplete_details) {
+      console.log('   - Incomplete details:', runStatus.incomplete_details);
+    }
     return {
       success: false,
       error: `Assistant run failed with status: ${runStatus.status}`,
+      runDetails: runStatus,
       mockResponse: generateMockResponse(userQuery)
     };
     

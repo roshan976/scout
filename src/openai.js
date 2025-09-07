@@ -131,30 +131,62 @@ async function createVectorStoreWithFiles(fileIds, storeName = "Scout Knowledge 
   try {
     const client = getOpenAIClient();
     
+    console.log('🏗️ Creating vector store with name:', storeName);
+    console.log('📁 Files to attach:', fileIds.length, 'files:', fileIds);
+    
     // Create vector store
-    const vectorStore = await client.beta.vectorStores.create({
+    const vectorStore = await client.vectorStores.create({
       name: storeName
     });
-    console.log('✅ Vector store created:', vectorStore.id);
+    console.log('✅ Vector store created successfully');
+    console.log('   - Vector Store ID:', vectorStore.id);
+    console.log('   - Vector Store Name:', vectorStore.name);
+    console.log('   - Created at:', new Date(vectorStore.created_at * 1000).toISOString());
     
     // Add files to vector store one by one (more reliable than batch)
     if (fileIds.length > 0) {
+      console.log('🔗 Attaching files to vector store...');
+      let successCount = 0;
+      let failCount = 0;
+      
       for (const fileId of fileIds) {
         try {
-          await client.beta.vectorStores.files.create(vectorStore.id, {
+          console.log(`   📄 Attaching file ${fileId} to vector store...`);
+          const vectorStoreFile = await client.vectorStores.files.create(vectorStore.id, {
             file_id: fileId
           });
-          console.log('✅ File attached to vector store:', fileId);
+          console.log(`   ✅ File ${fileId} attached successfully`);
+          console.log(`      - Vector Store File ID: ${vectorStoreFile.id}`);
+          console.log(`      - Status: ${vectorStoreFile.status}`);
+          successCount++;
         } catch (fileError) {
-          console.error('❌ Failed to attach file:', fileId, fileError.message);
+          console.error(`   ❌ Failed to attach file ${fileId}:`, fileError.message);
+          console.error(`      Error details:`, fileError);
+          failCount++;
         }
       }
-      console.log('📚 Vector store setup complete with', fileIds.length, 'files');
+      
+      console.log('📊 Vector store file attachment summary:');
+      console.log(`   - Successfully attached: ${successCount} files`);
+      console.log(`   - Failed to attach: ${failCount} files`);
+      console.log(`   - Total processed: ${fileIds.length} files`);
+    }
+    
+    // Verify vector store status
+    try {
+      const verifiedStore = await client.vectorStores.retrieve(vectorStore.id);
+      console.log('🔍 Vector store verification:');
+      console.log('   - Status:', verifiedStore.status);
+      console.log('   - File counts:', verifiedStore.file_counts);
+      console.log('   - Usage bytes:', verifiedStore.usage_bytes);
+    } catch (verifyError) {
+      console.error('⚠️ Could not verify vector store:', verifyError.message);
     }
     
     return vectorStore;
   } catch (error) {
     console.error('❌ Error creating vector store:', error.message);
+    console.error('Full error details:', error);
     throw error;
   }
 }
@@ -163,6 +195,18 @@ async function createVectorStoreWithFiles(fileIds, storeName = "Scout Knowledge 
 async function attachVectorStoreToAssistant(assistantId, vectorStoreId) {
   try {
     const client = getOpenAIClient();
+    
+    console.log('🔗 Attaching vector store to Assistant...');
+    console.log('   - Assistant ID:', assistantId);
+    console.log('   - Vector Store ID:', vectorStoreId);
+    
+    // Get current Assistant state before update
+    const currentAssistant = await client.beta.assistants.retrieve(assistantId);
+    console.log('📋 Current Assistant configuration:');
+    console.log('   - Name:', currentAssistant.name);
+    console.log('   - Tools:', currentAssistant.tools.map(t => t.type).join(', '));
+    console.log('   - Current vector stores:', currentAssistant.tool_resources?.file_search?.vector_store_ids || []);
+    
     const assistant = await client.beta.assistants.update(assistantId, {
       tool_resources: {
         file_search: {
@@ -171,10 +215,45 @@ async function attachVectorStoreToAssistant(assistantId, vectorStoreId) {
       }
     });
     
-    console.log('✅ Vector store attached to Assistant');
+    console.log('✅ Vector store attached to Assistant successfully');
+    console.log('📋 Updated Assistant configuration:');
+    console.log('   - Name:', assistant.name);
+    console.log('   - Tools:', assistant.tools.map(t => t.type).join(', '));
+    console.log('   - Attached vector stores:', assistant.tool_resources?.file_search?.vector_store_ids || []);
+    
     return assistant;
   } catch (error) {
     console.error('❌ Error attaching vector store to Assistant:', error.message);
+    console.error('Full error details:', error);
+    throw error;
+  }
+}
+
+// Get vector store details for debugging
+async function getVectorStoreDetails(vectorStoreId) {
+  try {
+    const client = getOpenAIClient();
+    const vectorStore = await client.vectorStores.retrieve(vectorStoreId);
+    const files = await client.vectorStores.files.list(vectorStoreId);
+    
+    console.log('🔍 Vector Store Details:');
+    console.log('   - ID:', vectorStore.id);
+    console.log('   - Name:', vectorStore.name);
+    console.log('   - Status:', vectorStore.status);
+    console.log('   - File counts:', vectorStore.file_counts);
+    console.log('   - Usage bytes:', vectorStore.usage_bytes);
+    console.log('   - Files in store:', files.data.length);
+    
+    if (files.data.length > 0) {
+      console.log('📄 Files in vector store:');
+      files.data.forEach((file, index) => {
+        console.log(`   ${index + 1}. File ID: ${file.id}, Status: ${file.status}`);
+      });
+    }
+    
+    return { vectorStore, files: files.data };
+  } catch (error) {
+    console.error('❌ Error getting vector store details:', error.message);
     throw error;
   }
 }
@@ -186,5 +265,6 @@ module.exports = {
   updateAssistantInstructions,
   uploadFileToOpenAI,
   createVectorStoreWithFiles,
-  attachVectorStoreToAssistant
+  attachVectorStoreToAssistant,
+  getVectorStoreDetails
 };
