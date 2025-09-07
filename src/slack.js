@@ -11,6 +11,20 @@ const app = new App({
   port: process.env.SLACK_PORT || 3001
 });
 
+// Debug: Log all incoming events
+app.use(async ({ payload, next }) => {
+  console.log('🔔 Slack Event Received:', payload.type, payload.event?.type || 'no event type');
+  if (payload.event) {
+    console.log('📩 Event details:', {
+      type: payload.event.type,
+      text: payload.event.text,
+      user: payload.event.user,
+      channel: payload.event.channel
+    });
+  }
+  await next();
+});
+
 // Listen for messages that mention @scout or contain "scout"
 app.message(/scout/i, async ({ message, say }) => {
   try {
