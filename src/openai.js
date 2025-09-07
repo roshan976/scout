@@ -130,22 +130,26 @@ async function uploadFileToOpenAI(filePath, filename) {
 async function createVectorStoreWithFiles(fileIds, storeName = "Scout Knowledge Base") {
   try {
     const client = getOpenAIClient();
-    console.log('🔍 Debug - Client object:', client ? 'exists' : 'null');
-    console.log('🔍 Debug - Client.beta:', client?.beta ? 'exists' : 'missing');
-    console.log('🔍 Debug - Client.beta.vectorStores:', client?.beta?.vectorStores ? 'exists' : 'missing');
     
+    // Create vector store
     const vectorStore = await client.beta.vectorStores.create({
       name: storeName
     });
+    console.log('✅ Vector store created:', vectorStore.id);
     
+    // Add files to vector store one by one (more reliable than batch)
     if (fileIds.length > 0) {
-      await client.beta.vectorStores.fileBatches.create(vectorStore.id, {
-        file_ids: fileIds
-      });
-      
-      console.log('✅ Vector store created with files');
-      console.log('Vector Store ID:', vectorStore.id);
-      console.log('Files attached:', fileIds.length);
+      for (const fileId of fileIds) {
+        try {
+          await client.beta.vectorStores.files.create(vectorStore.id, {
+            file_id: fileId
+          });
+          console.log('✅ File attached to vector store:', fileId);
+        } catch (fileError) {
+          console.error('❌ Failed to attach file:', fileId, fileError.message);
+        }
+      }
+      console.log('📚 Vector store setup complete with', fileIds.length, 'files');
     }
     
     return vectorStore;
