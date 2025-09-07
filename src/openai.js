@@ -170,6 +170,7 @@ async function attachVectorStoreToAssistant(assistantId, vectorStoreId) {
 }
 
 module.exports = {
+  getOpenAIClient,
   createAssistant,
   getAssistant,
   updateAssistantInstructions,

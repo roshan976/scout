@@ -1,18 +1,17 @@
-const OpenAI = require('openai');
 const { config } = require('./config');
 const { getAllFiles } = require('./storage');
 const { ResponseFormatter } = require('./response-formatter');
 
-// Initialize OpenAI client
-let openai = null;
+// Import the getOpenAIClient function from openai.js
+const { getOpenAIClient } = require('./openai');
 
-function initializeOpenAI() {
-  if (!openai && config.openai.apiKey && config.openai.apiKey !== 'your_openai_api_key_here') {
-    openai = new OpenAI({
-      apiKey: config.openai.apiKey,
-    });
+function getClient() {
+  try {
+    return getOpenAIClient();
+  } catch (error) {
+    console.log('⚠️ OpenAI client initialization failed:', error.message);
+    return null;
   }
-  return openai;
 }
 
 // Process a query using OpenAI Assistant
@@ -22,7 +21,7 @@ async function processQuery(userQuery, userId = null, channelId = null) {
   console.log('📍 Channel:', channelId);
   
   // Check if OpenAI is configured
-  const client = initializeOpenAI();
+  const client = getClient();
   if (!client) {
     console.log('⚠️ OpenAI not configured, returning mock response');
     return generateMockResponse(userQuery);
