@@ -45,6 +45,7 @@ async function processQuery(userQuery, userId = null, channelId = null) {
     console.log('📊 Pre-query Assistant verification:');
     const assistantDetails = await client.beta.assistants.retrieve(config.openai.assistantId);
     console.log('   - Assistant Name:', assistantDetails.name);
+    console.log('   - Model:', assistantDetails.model);
     console.log('   - Tools enabled:', assistantDetails.tools.map(t => t.type).join(', ') || 'none');
     console.log('   - Vector stores attached:', assistantDetails.tool_resources?.file_search?.vector_store_ids?.length || 0);
     if (assistantDetails.tool_resources?.file_search?.vector_store_ids) {

@@ -204,10 +204,12 @@ async function attachVectorStoreToAssistant(assistantId, vectorStoreId) {
     const currentAssistant = await client.beta.assistants.retrieve(assistantId);
     console.log('📋 Current Assistant configuration:');
     console.log('   - Name:', currentAssistant.name);
+    console.log('   - Model:', currentAssistant.model);
     console.log('   - Tools:', currentAssistant.tools.map(t => t.type).join(', ') || 'none');
     console.log('   - Current vector stores:', currentAssistant.tool_resources?.file_search?.vector_store_ids || []);
     
     const assistant = await client.beta.assistants.update(assistantId, {
+      model: "gpt-4o",
       tools: [{ type: "file_search" }],
       tool_resources: {
         file_search: {
@@ -219,6 +221,7 @@ async function attachVectorStoreToAssistant(assistantId, vectorStoreId) {
     console.log('✅ Vector store attached to Assistant successfully');
     console.log('📋 Updated Assistant configuration:');
     console.log('   - Name:', assistant.name);
+    console.log('   - Model:', assistant.model);
     console.log('   - Tools:', assistant.tools.map(t => t.type).join(', ') || 'none');
     console.log('   - Attached vector stores:', assistant.tool_resources?.file_search?.vector_store_ids || []);
     
