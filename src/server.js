@@ -319,6 +319,17 @@ app.listen(PORT, async () => {
     console.log('   SIGNING_SECRET length:', config.slack.signingSecret.length);
   }
   
+  // Debug OpenAI configuration
+  console.log('🔍 OpenAI Environment Check:');
+  console.log('   OPENAI_API_KEY:', config.openai.apiKey ? 'SET ✅' : 'MISSING ❌');
+  console.log('   OPENAI_ASSISTANT_ID:', config.openai.assistantId ? 'SET ✅' : 'MISSING ❌');
+  if (config.openai.apiKey) {
+    console.log('   API_KEY starts with:', config.openai.apiKey.substring(0, 10));
+  }
+  if (config.openai.assistantId) {
+    console.log('   ASSISTANT_ID:', config.openai.assistantId);
+  }
+  
   // Start Slack bot if tokens are available
   if (config.slack.appToken && config.slack.botToken && config.slack.signingSecret) {
     try {
