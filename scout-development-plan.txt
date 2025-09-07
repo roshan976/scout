@@ -1,0 +1,199 @@
+SCOUT DEVELOPMENT PLAN
+=======================
+
+Project: Internal Slackbot for Knowledge Access
+Tech Stack: Node.js, Express, OpenAI Assistants API, Slack Bolt SDK
+
+ARCHITECTURE OVERVIEW
+---------------------
+- Backend: Node.js + Express + Slack Bolt SDK
+- AI: OpenAI Assistants API with file search
+- Storage: Simple JSON file for file metadata
+- Frontend: Basic HTML file upload form
+
+CORE FLOW
+---------
+File Upload Process:
+1. Dashboard: Upload file + description text field
+2. Store: Save {filename: description} mapping locally
+3. OpenAI: Upload file to Assistant + update system instructions
+4. Instructions: Dynamically build prompt with all file descriptions
+
+Query Process:
+1. Slack: User posts @scout What's our Q4 revenue?
+2. Bot: Send question to OpenAI Assistant (unchanged instructions)
+3. Assistant: Searches relevant files, returns answer with citations
+4. Response: Post in Slack thread with formatted citations
+
+DEVELOPMENT PHASES
+==================
+
+PHASE 1: FOUNDATION
+-------------------
+
+Step 1: Initialize Project
+- Create package.json with name, version, scripts
+- Install dependencies: express, openai, @slack/bolt, multer, dotenv
+- Create basic folder structure: /src, /uploads, /public
+
+Step 2: Basic Express Server
+- Create src/server.js with Express app
+- Add GET /health endpoint returning {"status": "ok"}
+- Add port configuration (default 3000)
+- Test server starts and health check works
+
+Step 3: Environment Setup
+- Create .env file template with OPENAI_API_KEY, SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET
+- Create src/config.js to load environment variables
+- Add .env to .gitignore
+
+PHASE 2: FILE UPLOAD SYSTEM
+----------------------------
+
+Step 4: HTML Upload Form
+- Create public/index.html with file upload form
+- Include file input (accept PDF, CSV, TXT, DOCX) and description textarea
+- Style with basic CSS for clean look
+- Serve static files from Express
+
+Step 5: File Upload Endpoint
+- Add POST /upload endpoint using multer middleware
+- Save uploaded files to /uploads directory
+- Validate file types (PDF, CSV, TXT, DOCX)
+- Return success/error JSON response
+
+Step 6: Metadata Storage
+- Create src/storage.js for file metadata management
+- Store file mappings in data/files.json: {filename: {description, uploadDate, originalName}}
+- Add functions: saveFileMetadata(), getFileMetadata(), getAllFiles()
+
+PHASE 3: OPENAI INTEGRATION
+----------------------------
+
+Step 7: Create Assistant
+- Create src/openai.js with OpenAI client setup
+- Add createAssistant() function with file search tools enabled
+- Store Assistant ID in config/environment
+- Test Assistant creation via API
+
+Step 8: File Upload to OpenAI
+- Add uploadFileToOpenAI() function in src/openai.js
+- Read local file and upload to OpenAI using Files API
+- Store OpenAI file ID in metadata JSON
+- Handle upload errors and file size limits
+
+Step 9: Update Assistant Instructions
+- Add updateAssistantInstructions() function
+- Build dynamic system prompt from file metadata: "You have access to these files: filename: description..."
+- Call OpenAI API to update Assistant instructions
+- Trigger instruction update after each file upload
+
+PHASE 4: SLACK INTEGRATION
+---------------------------
+
+Step 10: Slack Bot Setup
+- Create src/slack.js with Slack Bolt app initialization
+- Add bot token and signing secret configuration
+- Add basic event listeners and app start
+- Test bot can connect to Slack workspace
+
+Step 11: Handle @scout Mentions
+- Add mention event handler in Slack app
+- Extract user question text (remove @scout mention)
+- Filter for messages in #ask-scout channel only
+- Add basic response acknowledgment
+
+Step 12: Connect to OpenAI Assistant
+- Add queryAssistant() function in src/openai.js
+- Create thread, send message, poll for response
+- Parse Assistant response for answer and citations
+- Send formatted response back to Slack thread
+
+PHASE 5: PRODUCTION READY
+-------------------------
+
+Step 13: Error Handling
+- Add try/catch blocks around all API calls
+- Create user-friendly error messages for Slack
+- Add logging for debugging (console.log or proper logger)
+- Handle rate limits and timeouts gracefully
+
+Step 14: Access Control
+- Verify Slack requests using signing secret
+- Check user belongs to Arrow workspace
+- Add basic spam protection (rate limiting per user)
+- Sanitize user inputs
+
+Step 15: Final System Integration and Production Readiness
+- Enhanced package.json with production-ready scripts and metadata
+- Created PM2 ecosystem configuration for production deployment
+- Added Docker configuration with security best practices
+- Created comprehensive production deployment checklist (268 items)
+- Added file management system with view/delete functionality
+- Enhanced web interface with tabbed dashboard (Upload/Manage/Query)
+- Created production monitoring and maintenance scripts
+- Comprehensive documentation suite (8 guides, 9,000+ words)
+
+PHASE 6: PRODUCTION DEPLOYMENT
+-----------------------------
+
+Step 16: Prepare for Production
+- Push Scout to GitHub repository
+- Remove sensitive data and test files
+- Verify all documentation is complete
+- Test demo mode functionality
+
+Step 17: Set Up Slack App
+- Create Slack App at https://api.slack.com/apps
+- Configure bot permissions (app_mentions:read, chat:write, etc.)
+- Enable Socket Mode with App-Level Token (xapp-)
+- Install to workspace and get Bot Token (xoxb-)
+- Get Signing Secret from Basic Information
+
+Step 18: Get OpenAI API Key
+- Create account at https://platform.openai.com
+- Generate API key (sk-)
+- Optional: Create Assistant manually or let Scout auto-create
+
+Step 19: Deploy to Railway
+- Sign up at https://railway.app with GitHub
+- Deploy directly from GitHub repository
+- Add environment variables in Railway dashboard:
+  * NODE_ENV=production
+  * OPENAI_API_KEY=sk-your-key-here
+  * SLACK_BOT_TOKEN=xoxb-your-token-here
+  * SLACK_SIGNING_SECRET=your-secret-here
+  * SLACK_APP_TOKEN=xapp-your-token-here
+- Railway provides 24/7 hosting with auto-scaling
+
+Step 20: Test and Launch
+- Test Railway deployment URL
+- Upload test documents via web interface
+- Test @scout help in Slack workspace
+- Upload company documents with good descriptions
+- Announce Scout to team with usage instructions
+- Monitor Railway logs and OpenAI usage costs
+
+PRODUCTION FEATURES
+-------------------
+✅ File Management Dashboard - Upload, view, delete files with statistics
+✅ Enhanced Web Interface - 3-tab dashboard (Upload/Manage Files/Test Query)
+✅ Production Deployment - PM2, Docker, Railway deployment ready
+✅ Comprehensive Monitoring - Health checks, system monitoring, log management
+✅ Complete Documentation - Setup, deployment, user guides, API docs
+✅ Professional Slack Integration - Rich formatting, help system, error handling
+✅ Demo Mode Support - Works without API keys for testing
+✅ Security & Validation - File type validation, error handling, secure deployment
+
+DEPLOYMENT COST: ~$10-15/month (Railway $5 + OpenAI usage)
+TOTAL SETUP TIME: ~35 minutes
+MAINTENANCE: Minimal - Railway handles all infrastructure automatically
+
+NOTES
+-----
+- Each step should take 15-30 minutes and result in testable functionality
+- Test each phase before moving to the next
+- Keep implementation simple and focused on MVP
+- OpenAI Assistants API handles all RAG complexity automatically
+- File descriptions guide Assistant search accuracy through system instructions
+- Scout is now production-ready with comprehensive file management and 24/7 deployment

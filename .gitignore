@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+
+# Uploaded files
+uploads/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Build outputs
+dist/
+build/
+
+# Data files (keep structure but not content)
+data/*.json
+!data/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# PM2 files
+.pm2/
+pm2.log
+
+# Docker files
+.dockerignore
+docker-compose.override.yml
+
+# Test files
+*test*.txt
+*test*.js
+*test*.json
