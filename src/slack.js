@@ -26,6 +26,7 @@ app.use(async ({ payload, next }) => {
 });
 
 // Listen for messages that mention @scout or contain "scout", plus thread replies
+// Fixed: Consolidated duplicate message listeners to prevent middleware conflicts
 app.message(async ({ message, say }) => {
   // Skip if this is a bot message or from Scout itself
   if (message.bot_id || message.subtype === 'bot_message') {
