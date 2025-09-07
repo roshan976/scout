@@ -130,6 +130,10 @@ async function uploadFileToOpenAI(filePath, filename) {
 async function createVectorStoreWithFiles(fileIds, storeName = "Scout Knowledge Base") {
   try {
     const client = getOpenAIClient();
+    console.log('🔍 Debug - Client object:', client ? 'exists' : 'null');
+    console.log('🔍 Debug - Client.beta:', client?.beta ? 'exists' : 'missing');
+    console.log('🔍 Debug - Client.beta.vectorStores:', client?.beta?.vectorStores ? 'exists' : 'missing');
+    
     const vectorStore = await client.beta.vectorStores.create({
       name: storeName
     });
