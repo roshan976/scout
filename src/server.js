@@ -308,6 +308,17 @@ app.listen(PORT, async () => {
   console.log('   SLACK_BOT_TOKEN:', config.slack.botToken ? 'SET ✅' : 'MISSING ❌');
   console.log('   SLACK_SIGNING_SECRET:', config.slack.signingSecret ? 'SET ✅' : 'MISSING ❌');
   
+  // Debug token lengths and check for invalid characters
+  if (config.slack.appToken) {
+    console.log('   APP_TOKEN length:', config.slack.appToken.length, 'starts with:', config.slack.appToken.substring(0, 10));
+  }
+  if (config.slack.botToken) {
+    console.log('   BOT_TOKEN length:', config.slack.botToken.length, 'starts with:', config.slack.botToken.substring(0, 10));
+  }
+  if (config.slack.signingSecret) {
+    console.log('   SIGNING_SECRET length:', config.slack.signingSecret.length);
+  }
+  
   // Start Slack bot if tokens are available
   if (config.slack.appToken && config.slack.botToken && config.slack.signingSecret) {
     try {

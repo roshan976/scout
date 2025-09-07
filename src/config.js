@@ -7,9 +7,9 @@ const config = {
     assistantId: process.env.OPENAI_ASSISTANT_ID
   },
   slack: {
-    botToken: process.env.SLACK_BOT_TOKEN,
-    signingSecret: process.env.SLACK_SIGNING_SECRET,
-    appToken: process.env.SLACK_APP_TOKEN
+    botToken: process.env.SLACK_BOT_TOKEN ? process.env.SLACK_BOT_TOKEN.trim() : null,
+    signingSecret: process.env.SLACK_SIGNING_SECRET ? process.env.SLACK_SIGNING_SECRET.trim() : null,
+    appToken: process.env.SLACK_APP_TOKEN ? process.env.SLACK_APP_TOKEN.trim() : null
   }
 };
 
