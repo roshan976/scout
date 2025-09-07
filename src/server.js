@@ -128,10 +128,27 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         const filePath = path.join('uploads', req.file.filename);
         const openaiFile = await uploadFileToOpenAI(filePath, req.file.originalname);
         
-        // Update Assistant instructions with new file descriptions
+        // Create or update vector store with all files for Assistant search
         if (config.openai.assistantId && config.openai.assistantId !== 'your_assistant_id_here') {
-          await updateAssistantInstructions(config.openai.assistantId);
-          assistantUpdated = true;
+          try {
+            // Get all uploaded file IDs (for this simple case, we'll create a new vector store each time)
+            const { createVectorStoreWithFiles, attachVectorStoreToAssistant } = require('./openai');
+            
+            console.log('📚 Creating vector store with uploaded file...');
+            const vectorStore = await createVectorStoreWithFiles([openaiFile.id], 'Scout Knowledge Base');
+            
+            console.log('🔗 Attaching vector store to Assistant...');
+            await attachVectorStoreToAssistant(config.openai.assistantId, vectorStore.id);
+            
+            // Update Assistant instructions with new file descriptions  
+            await updateAssistantInstructions(config.openai.assistantId);
+            assistantUpdated = true;
+            
+            console.log('✅ File search enabled for Assistant');
+          } catch (vectorError) {
+            console.error('❌ Vector store setup failed:', vectorError.message);
+            console.log('💡 File uploaded but search may not work properly');
+          }
         }
         
         openaiResponse = {

@@ -129,12 +129,13 @@ async function uploadFileToOpenAI(filePath, filename) {
 // Create vector store and attach files
 async function createVectorStoreWithFiles(fileIds, storeName = "Scout Knowledge Base") {
   try {
-    const vectorStore = await openai.beta.vectorStores.create({
+    const client = getOpenAIClient();
+    const vectorStore = await client.beta.vectorStores.create({
       name: storeName
     });
     
     if (fileIds.length > 0) {
-      await openai.beta.vectorStores.fileBatches.create(vectorStore.id, {
+      await client.beta.vectorStores.fileBatches.create(vectorStore.id, {
         file_ids: fileIds
       });
       
@@ -153,7 +154,8 @@ async function createVectorStoreWithFiles(fileIds, storeName = "Scout Knowledge 
 // Attach vector store to Assistant
 async function attachVectorStoreToAssistant(assistantId, vectorStoreId) {
   try {
-    const assistant = await openai.beta.assistants.update(assistantId, {
+    const client = getOpenAIClient();
+    const assistant = await client.beta.assistants.update(assistantId, {
       tool_resources: {
         file_search: {
           vector_store_ids: [vectorStoreId]
