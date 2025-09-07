@@ -45,10 +45,18 @@ async function processQuery(userQuery, userId = null, channelId = null) {
     console.log('📊 Pre-query Assistant verification:');
     const assistantDetails = await client.beta.assistants.retrieve(config.openai.assistantId);
     console.log('   - Assistant Name:', assistantDetails.name);
-    console.log('   - Tools enabled:', assistantDetails.tools.map(t => t.type).join(', '));
+    console.log('   - Tools enabled:', assistantDetails.tools.map(t => t.type).join(', ') || 'none');
     console.log('   - Vector stores attached:', assistantDetails.tool_resources?.file_search?.vector_store_ids?.length || 0);
     if (assistantDetails.tool_resources?.file_search?.vector_store_ids) {
       console.log('   - Vector store IDs:', assistantDetails.tool_resources.file_search.vector_store_ids);
+    }
+    
+    // Check for file_search tool specifically
+    const hasFileSearch = assistantDetails.tools.some(t => t.type === 'file_search');
+    if (hasFileSearch) {
+      console.log('   ✅ file_search tool is enabled');
+    } else {
+      console.log('   ❌ file_search tool is MISSING - Assistant cannot search files!');
     }
     
     // Create a thread for this conversation
