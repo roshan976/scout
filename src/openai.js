@@ -2,15 +2,25 @@ const OpenAI = require('openai');
 const { config } = require('./config');
 const { getAllFiles } = require('./storage');
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: config.openai.apiKey,
-});
+// Initialize OpenAI client lazily
+let openai = null;
+
+function getOpenAIClient() {
+  if (!openai) {
+    const apiKey = config.openai.apiKey || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error('OpenAI API key not found in environment variables');
+    }
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+}
 
 // Create OpenAI Assistant with file search enabled
 async function createAssistant() {
   try {
-    const assistant = await openai.beta.assistants.create({
+    const client = getOpenAIClient();
+    const assistant = await client.beta.assistants.create({
       name: "Scout",
       instructions: "You are Scout, an internal knowledge assistant for Arrow. You help employees access company information by searching through uploaded documents and providing accurate, cited answers. Always cite your sources when referencing specific documents.",
       model: "gpt-4o",
@@ -38,7 +48,8 @@ async function createAssistant() {
 // Get existing Assistant by ID
 async function getAssistant(assistantId) {
   try {
-    const assistant = await openai.beta.assistants.retrieve(assistantId);
+    const client = getOpenAIClient();
+    const assistant = await client.beta.assistants.retrieve(assistantId);
     return assistant;
   } catch (error) {
     console.error('❌ Error retrieving Assistant:', error.message);
@@ -85,7 +96,8 @@ When answering questions:
 
 // Helper function to update instructions
 async function updateAssistantWithInstructions(assistantId, instructions) {
-  const assistant = await openai.beta.assistants.update(assistantId, {
+  const client = getOpenAIClient();
+  const assistant = await client.beta.assistants.update(assistantId, {
     instructions: instructions
   });
   
@@ -98,7 +110,8 @@ async function updateAssistantWithInstructions(assistantId, instructions) {
 // Upload file to OpenAI for Assistant
 async function uploadFileToOpenAI(filePath, filename) {
   try {
-    const file = await openai.files.create({
+    const client = getOpenAIClient();
+    const file = await client.files.create({
       file: require('fs').createReadStream(filePath),
       purpose: 'assistants'
     });

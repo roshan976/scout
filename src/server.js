@@ -295,10 +295,25 @@ if (!fs.existsSync('data')) {
 }
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Scout server running on port ${PORT}`);
   console.log('✅ Required directories verified');
   console.log(`📁 Uploads: uploads/`);
   console.log(`📊 Data: data/`);
   console.log(`🌐 Web interface: http://localhost:${PORT}`);
+  
+  // Start Slack bot if tokens are available
+  if (config.slack.appToken && config.slack.botToken && config.slack.signingSecret) {
+    try {
+      const { startSlackBot } = require('./slack');
+      await startSlackBot();
+      console.log('🤖 Slack bot started successfully!');
+    } catch (error) {
+      console.error('❌ Failed to start Slack bot:', error.message);
+      console.log('💡 Scout web interface will work, but Slack integration is disabled');
+    }
+  } else {
+    console.log('⏭️  Slack tokens not configured, running in demo mode');
+    console.log('💡 Upload documents via web interface and use the Test Query tab');
+  }
 });
