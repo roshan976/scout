@@ -20,6 +20,12 @@ async function processQuery(userQuery, userId = null, channelId = null) {
   console.log('👤 User:', userId);
   console.log('📍 Channel:', channelId);
   
+  // Debug configuration values
+  console.log('🔍 Debug - OpenAI API Key:', config.openai.apiKey ? 'SET ✅' : 'MISSING ❌');
+  console.log('🔍 Debug - Assistant ID:', config.openai.assistantId ? 'SET ✅' : 'MISSING ❌');
+  console.log('🔍 Debug - API Key value:', config.openai.apiKey ? config.openai.apiKey.substring(0, 20) + '...' : 'null');
+  console.log('🔍 Debug - Assistant ID value:', config.openai.assistantId || 'null');
+  
   // Check if OpenAI is configured
   const client = getClient();
   if (!client) {
@@ -30,6 +36,7 @@ async function processQuery(userQuery, userId = null, channelId = null) {
   // Check if Assistant is configured
   if (!config.openai.assistantId || config.openai.assistantId === 'your_assistant_id_here') {
     console.log('⚠️ OpenAI Assistant not configured, returning mock response');
+    console.log('⚠️ Assistant ID check failed:', config.openai.assistantId);
     return generateMockResponse(userQuery);
   }
   
