@@ -32,8 +32,8 @@ class ResponseFormatter {
     // Create enhanced source citations
     const sourcesSection = this.formatSourcesCitations(sources, availableFiles, maxSourcesShown, isMock);
     
-    // Create action buttons section
-    const actionsSection = includeQuickActions ? this.createActionButtons(originalQuery, isMock) : null;
+    // Create action buttons section - disabled per user request
+    const actionsSection = null;
     
     // Create metadata footer
     const metadataSection = includeMetadata ? this.createMetadataFooter(isMock, availableFiles, includeTimestamp) : null;
@@ -179,71 +179,8 @@ class ResponseFormatter {
   
   // Create action buttons for common follow-ups
   static createActionButtons(originalQuery, isMock) {
-    if (isMock) {
-      return {
-        type: 'actions',
-        elements: [
-          {
-            type: 'button',
-            text: {
-              type: 'plain_text',
-              text: '📁 View All Documents',
-              emoji: true
-            },
-            style: 'primary',
-            value: 'view_documents',
-            action_id: 'view_documents'
-          },
-          {
-            type: 'button', 
-            text: {
-              type: 'plain_text',
-              text: '❓ Ask Different Question',
-              emoji: true
-            },
-            value: 'new_question',
-            action_id: 'new_question'
-          }
-        ]
-      };
-    }
-    
-    return {
-      type: 'actions',
-      elements: [
-        {
-          type: 'button',
-          text: {
-            type: 'plain_text',
-            text: '👍 Helpful',
-            emoji: true
-          },
-          style: 'primary',
-          value: 'helpful',
-          action_id: 'feedback_helpful'
-        },
-        {
-          type: 'button',
-          text: {
-            type: 'plain_text',
-            text: '🔄 Ask Follow-up',
-            emoji: true
-          },
-          value: 'followup',
-          action_id: 'ask_followup'
-        },
-        {
-          type: 'button',
-          text: {
-            type: 'plain_text',
-            text: '📧 Share Response',
-            emoji: true
-          },
-          value: 'share',
-          action_id: 'share_response'
-        }
-      ]
-    };
+    // Buttons have been disabled per user request
+    return null;
   }
   
   // Create enhanced metadata footer
