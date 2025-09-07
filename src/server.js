@@ -302,6 +302,12 @@ app.listen(PORT, async () => {
   console.log(`📊 Data: data/`);
   console.log(`🌐 Web interface: http://localhost:${PORT}`);
   
+  // Debug: Log Slack environment variables (masked for security)
+  console.log('🔍 Slack Environment Check:');
+  console.log('   SLACK_APP_TOKEN:', config.slack.appToken ? 'SET ✅' : 'MISSING ❌');
+  console.log('   SLACK_BOT_TOKEN:', config.slack.botToken ? 'SET ✅' : 'MISSING ❌');
+  console.log('   SLACK_SIGNING_SECRET:', config.slack.signingSecret ? 'SET ✅' : 'MISSING ❌');
+  
   // Start Slack bot if tokens are available
   if (config.slack.appToken && config.slack.botToken && config.slack.signingSecret) {
     try {
