@@ -124,10 +124,101 @@ app.post('/upload', upload.single('file'), async (req, res) => {
       try {
         // Check if file type is supported by OpenAI file search
         const supportedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.md', '.html', '.json'];
+        const csvExtensions = ['.csv'];
         const fileExtension = path.extname(req.file.originalname).toLowerCase();
         
+        // Handle CSV files specially - convert to text format for OpenAI
+        if (csvExtensions.includes(fileExtension)) {
+          console.log(`📊 CSV file detected: ${req.file.originalname}`);
+          console.log('🔄 Converting CSV to text format for OpenAI compatibility...');
+          
+          try {
+            const fs = require('fs');
+            const csvFilePath = path.join('uploads', req.file.filename);
+            const csvContent = fs.readFileSync(csvFilePath, 'utf8');
+            
+            // Create a text version of the CSV with better formatting
+            const textContent = `# ${req.file.originalname}\n# Description: ${req.body.description}\n\n${csvContent}`;
+            
+            // Save as a temporary text file for OpenAI upload
+            const textFilename = req.file.filename.replace('.csv', '.txt');
+            const textFilePath = path.join('uploads', textFilename);
+            fs.writeFileSync(textFilePath, textContent);
+            
+            console.log('✅ CSV converted to text format for AI processing');
+            
+            // Upload the text version to OpenAI
+            const openaiFile = await uploadFileToOpenAI(textFilePath, req.file.originalname.replace('.csv', '.txt'));
+            
+            // Clean up the temporary text file
+            fs.unlinkSync(textFilePath);
+            
+            // Continue with vector store creation using the text file
+            if (config.openai.assistantId && config.openai.assistantId !== 'your_assistant_id_here') {
+              try {
+                const { createVectorStoreWithFiles, attachVectorStoreToAssistant } = require('./openai');
+                
+                console.log('📚 Creating vector store with converted CSV file...');
+                console.log('   - Original file:', req.file.originalname);
+                console.log('   - OpenAI File ID:', openaiFile.id);
+                
+                const vectorStore = await createVectorStoreWithFiles([openaiFile.id], 'Scout Knowledge Base');
+                
+                console.log('🔗 Attaching vector store to Assistant...');
+                await attachVectorStoreToAssistant(config.openai.assistantId, vectorStore.id);
+                
+                // Update Assistant instructions with file descriptions  
+                console.log('📝 Updating Assistant instructions...');
+                await updateAssistantInstructions(config.openai.assistantId);
+                assistantUpdated = true;
+                
+                console.log('✅ CSV file processed and Assistant updated');
+                openaiResponse = {
+                  fileId: openaiFile.id,
+                  vectorStoreId: vectorStore.id,
+                  assistantUpdated: true,
+                  message: 'CSV file converted to text format and successfully uploaded for AI search'
+                };
+              } catch (vectorError) {
+                console.error('❌ Error creating vector store for CSV:', vectorError.message);
+                openaiResponse = {
+                  fileId: openaiFile.id,
+                  error: 'Failed to create vector store: ' + vectorError.message
+                };
+              }
+            } else {
+              openaiResponse = {
+                fileId: openaiFile.id,
+                message: 'CSV converted and uploaded to OpenAI, but no Assistant configured'
+              };
+            }
+            
+            return res.json({
+              success: true,
+              filename: req.file.filename,
+              originalName: req.file.originalname,
+              description: req.body.description,
+              openai: openaiResponse,
+              assistantUpdated,
+              message: 'CSV file uploaded and converted for AI search compatibility'
+            });
+            
+          } catch (csvError) {
+            console.error('❌ Error processing CSV file:', csvError.message);
+            return res.json({
+              success: true,
+              filename: req.file.filename,
+              originalName: req.file.originalname,
+              description: req.body.description,
+              openaiSupported: false,
+              message: `CSV file uploaded but could not be processed for AI search: ${csvError.message}`
+            });
+          }
+        }
+        
+        // Check other file types
         if (!supportedExtensions.includes(fileExtension)) {
-          console.warn(`⚠️ File type ${fileExtension} not supported by OpenAI file search. Supported types: ${supportedExtensions.join(', ')}`);
+          console.warn(`⚠️ File type ${fileExtension} not supported by OpenAI file search. Supported types: ${supportedExtensions.join(', ')}, CSV (converted to text)`);
           console.log('📁 File saved locally but will not be available for AI search');
           
           return res.json({
@@ -136,7 +227,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             originalName: req.file.originalname,
             description: req.body.description,
             openaiSupported: false,
-            message: `File uploaded successfully but ${fileExtension} files cannot be searched by the AI assistant. Supported formats: ${supportedExtensions.join(', ')}`
+            message: `File uploaded successfully but ${fileExtension} files cannot be searched by the AI assistant. Supported formats: ${supportedExtensions.join(', ')}, CSV`
           });
         }
         
